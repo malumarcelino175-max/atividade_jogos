@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Jogos</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      color: #222;
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 { color: #1e293b; margin-bottom: 1.25rem; }
+    .filtros {
+      background: #fff;
+      padding: 1.25rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 1.25rem;
+    }
+    .campo { display: flex; flex-direction: column; flex: 1 1 200px; }
+    label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: #475569; }
+    input, select {
+      padding: 0.55rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .acoes { display: flex; gap: 0.5rem; align-items: center; }
+    button {
+      padding: 0.58rem 1.1rem;
+      background-color: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background-color: #1d4ed8; }
+    .btn-limpar {
+      padding: 0.55rem 0.95rem;
+      background-color: #e2e8f0;
+      color: #334155;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .btn-limpar:hover { background-color: #cbd5e1; }
+    .resumo { margin-bottom: 0.75rem; color: #475569; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      margin-bottom: 1.25rem;
+    }
+    th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background-color: #1e293b; color: #fff; font-weight: 600; }
+    tr:hover td { background-color: #f8fafc; }
+    .paginacao {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      padding: 0.85rem 1.25rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    .paginacao a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 600;
+    }
+    .paginacao a:hover { text-decoration: underline; }
+    .desabilitado { color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <h1>Catálogo de Jogos</h1>
+
+  <!-- RF04 e RF05: Pesquisa textual + Filtros dinâmicos via GET -->
+  <form method="get" class="filtros">
+    <div class="campo">
+      <label for="id_q">Nome do jogo</label>
+      <input id="id_q" type="text" name="q" value="{{ q }}" placeholder="Buscar por nome...">
+    </div>
+
+    <div class="campo">
+      <label for="id_desenvolvedora">Desenvolvedora</label>
+      <select id="id_desenvolvedora" name="desenvolvedora">
+        <option value="">Todas as desenvolvedoras</option>
+        {% for dev in desenvolvedoras %}
+          <option value="{{ dev.id }}" {% if dev.id|stringformat:"s" == desenvolvedora_selecionada %}selected{% endif %}>
+            {{ dev.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="id_plataforma">Plataforma</label>
+      <select id="id_plataforma" name="plataforma">
+        <option value="">Todas as plataformas</option>
+        {% for plat in plataformas %}
+          <option value="{{ plat.id }}" {% if plat.id|stringformat:"s" == plataforma_selecionada %}selected{% endif %}>
+            {{ plat.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="acoes">
+      <button type="submit">Filtrar</button>
+      <a href="{% url 'jogos:lista_jogos' %}" class="btn-limpar">Limpar</a>
+    </div>
+  </form>
+
+  <p class="resumo">Jogos encontrados: <strong>{{ total_resultados }}</strong></p>
+
+  <!-- RF03: Listagem dos registros com dados dos modelos relacionados -->
+  <table>
+    <thead>
+      <tr>
+        <th>Jogo</th>
+        <th>Desenvolvedora</th>
+        <th>Plataforma</th>
+        <th>Ano de Lançamento</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for jogo in page_obj %}
+        <tr>
+          <td><strong>{{ jogo.nome }}</strong></td>
+          <td>{{ jogo.desenvolvedora.nome }}</td>
+          <td>{{ jogo.plataforma.nome }}</td>
+          <td>{{ jogo.ano_lancamento|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">Nenhum jogo encontrado com os critérios informados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- RF06 e RF07: Paginação (5 por página) preservando filtros ativos -->
+  <div class="paginacao">
+    <div>
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">
+          &laquo; Anterior
+        </a>
+      {% else %}
+        <span class="desabilitado">&laquo; Anterior</span>
+      {% endif %}
+    </div>
+
+    <span>
+      Página <strong>{{ page_obj.number }}</strong> de <strong>{{ page_obj.paginator.num_pages }}</strong>
+    </span>
+
+    <div>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">
+          Próxima &raquo;
+        </a>
+      {% else %}
+        <span class="desabilitado">Próxima &raquo;</span>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
+
+
